@@ -6,14 +6,7 @@ L1_GDB_PORT=1234
 KERNEL=linux-l1/arch/x86/boot/bzImage
 INITRD=linux-l1/initrd.img-l1
 
-IMG=images/l1.img
-QEMU_L1=qemu-l1
-KVM_L1=kvm-l1
-LINUX_L2=linux-l2
-SCRIPTS=scripts
 L1_DATA=l1-data
-L2_DATA=l2-data
-QEMU=$PWD/qemu-l0/build/qemu-system-x86_64
 
 run_qemu() {
     local mem=$1
@@ -61,12 +54,7 @@ run_qemu() {
     qemu_str+="-device virtio-net-pci,netdev=net0 \\"
     qemu_str+="-netdev user,id=net0,host=10.0.2.10,hostfwd=tcp::${ssh_port}-:22,hostfwd=tcp::${nested_ssh_port}-:11032,hostfwd=tcp::${nested_debug_port}-:1234 \\"
 
-    qemu_str+="-virtfs local,path=${KVM_L1},mount_tag=${KVM_L1},security_model=passthrough,id=${KVM_L1} \\"
-    qemu_str+="-virtfs local,path=${QEMU_L1},mount_tag=${QEMU_L1},security_model=passthrough,id=${QEMU_L1} \\"
-    qemu_str+="-virtfs local,path=${LINUX_L2},mount_tag=${LINUX_L2},security_model=passthrough,id=${LINUX_L2} \\"
-    qemu_str+="-virtfs local,path=${SCRIPTS},mount_tag=${SCRIPTS},security_model=passthrough,id=${SCRIPTS} \\"
     qemu_str+="-virtfs local,path=${L1_DATA},mount_tag=${L1_DATA},security_model=passthrough,id=${L1_DATA} \\"
-    qemu_str+="-virtfs local,path=${L2_DATA},mount_tag=${L2_DATA},security_model=passthrough,id=${L2_DATA} \\"
     
     qemu_str+="-append \"${cmdline}\" \\"
     qemu_str+="-kernel ${KERNEL} \\"

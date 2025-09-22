@@ -15,13 +15,11 @@ git submodule update --init
 ./common.sh -t kernel -l l0
 ./common.sh -t kernel -l l1
 
-./common.sh -t initrd -l l0
 ./common.sh -t initrd -l l1
-
-./common.sh -t kvm -l l0
 
 ./common.sh -t vm
 
+./common.sh -t kvm -l l0
 pushd kvm-l0 >/dev/null
 ./build.sh
 popd >/dev/null

@@ -193,7 +193,6 @@ build_kernel()
 
         run_cmd ./scripts/config --module CONFIG_KVM
         run_cmd ./scripts/config --module CONFIG_KVM_INTEL
-        run_cmd ./scripts/config --module CONFIG_KVM_AMD
         run_cmd ./scripts/config --enable CONFIG_KVM_VFIO
 
 	    run_cmd ./scripts/config --enable CONFIG_VFIO
@@ -227,8 +226,6 @@ install_kernel()
     }
 
     local vm_level=$1
-
-    check_argument "-l" "vm_level" ${vm_level}
 
     run_cmd sudo apt install -y rsync grub2
 
@@ -387,10 +384,6 @@ extract_kvm()
     for f in $(ls linux-${vm_level}/virt/kvm/*.c)
     do
         target=${f%.?}.o
-        if [ $(basename $target) = "guest_memfd.o" ]
-        then
-            continue
-        fi
         targets+="virt\/kvm\/$(basename $target) "
     done
 
@@ -408,45 +401,28 @@ extract_kvm()
 
     echo "make -j -C $PWD/linux-${vm_level} M=$PWD/$kvm" > $kvm/build.sh
     chmod +x $kvm/build.sh
-
 }
 
 finalize_vms()
 {
-    if [[ ! -f images/l1.img || ! -f images/l2.img ]]
+    if [[ ! -f images/l1.img ]]
     then
-        echo "Error: images/l1.img,l2.img not found"
+        echo "Error: images/l1.img not found"
         exit 1
     fi
 
     [ -d l1-data ] || {
         run_cmd mkdir l1-data
     }
-    [ -d l2-data ] || {
-        run_cmd mkdir l2-data
-    }
 
     tmp=$(realpath tmp)
-
-    run_mount ${tmp} l2
-
-    fstab=""
-    for dir in "scripts" "l2-data"
-    do
-        fstab+="${dir} /root/${dir} 9p trans=virtio,version=9p2000.L 0 0\n"
-    done
-
-    echo -ne ${fstab} | sudo tee -a ${tmp}/etc/fstab
-
-    run_umount ${tmp}
 
     run_mount ${tmp} l1
 
     run_cmd sudo mkdir -p ${tmp}/root/images
-    run_cmd sudo cp images/l2.img ${tmp}/root/images/
 
     fstab=""
-    for dir in "qemu-l1" "kvm-l1" "linux-l2" "scripts" "l1-data" "l2-data"
+    for dir in ""l1-data""
     do
         fstab+="${dir} /root/${dir} 9p trans=virtio,version=9p2000.L 0 0\n"
     done
@@ -460,12 +436,10 @@ finalize_vms()
 # Function to show usage information
 usage()
 {
-  echo "Usage: $0 [-t <target>] [-l <vm_level>] [-d <distribution_version>] [-v <kernel_version>] [-s <image_size>]" 1>&2
+  echo "Usage: $0 [-t <target>] [-l <vm_level>] [-d <distribution_version>] [-s <image_size>]" 1>&2
   echo "Options:" 1>&2
   echo "  -d <distribution_version>    Specify the distribution version of Debian" 1>&2
   echo "                               - default: bookworm" 1>&2
-  echo "  -v <kernel_version>          Specify the Linux kernel version" 1>&2
-  echo "                               - default: 6.16.4" 1>&2
   echo "  -s <image_size>              Specify the image size (MB)" 1>&2
   echo "                               - default: 16384 (16G)" 1>&2
   echo "  -t <target>                  Specify which target to run" 1>&2
@@ -475,7 +449,6 @@ usage()
 
 # Default settings
 distribution_version="bookworm"
-kernel_version="6.16.4"
 qemu_version="10.1.0"
 image_size="16384"
 vm_level="l1"
@@ -489,10 +462,6 @@ while getopts ":hd:v:s:t:l:" opt; do
     d)
       distribution_version=$OPTARG
       echo "Distribution version: $distribution_version"
-      ;;
-    v)
-      kernel_version=$OPTARG
-      echo "Kernel version: $kernel_version"
       ;;
     s)
       image_size=$OPTARG
@@ -536,7 +505,7 @@ case $target in
         build_initrd ${vm_level} ${distribution_version}
         ;;
     "kvm")
-        extract_kvm "l1"
+        extract_kvm ${vm_level}
         ;;
     "vm")
         finalize_vms
