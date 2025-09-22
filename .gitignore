@@ -1,0 +1,7 @@
+.vscode/
+images/l1.*
+images/l2.*
+kvm-*/
+qemu-*/
+l1-data/
+l2-data/

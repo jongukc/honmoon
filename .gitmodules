@@ -1,0 +1,8 @@
+[submodule "linux-l0"]
+	path = linux-l0
+	url = git@github.com:jongukc/vtrp-linux
+	branch = host
+[submodule "linux-l1"]
+	path = linux-l1
+	url = git@github.com:jongukc/vtrp-linux
+	branch = guest
