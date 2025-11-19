@@ -1,8 +1,7 @@
 #!/bin/bash -e
 
 distribution=bookworm
-l1_size=32768
-l2_size=8192
+l1_size=16384
 
 git submodule update --init
 

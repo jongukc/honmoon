@@ -3,9 +3,13 @@
 L1_SSH_PORT=11032
 L1_GDB_PORT=1234
 
+QEMU=qemu-l0/build/qemu-system-x86_64
+IMG=images/l1.img
 KERNEL=linux-l1/arch/x86/boot/bzImage
 INITRD=linux-l1/initrd.img-l1
 
+SCRIPTS=scripts
+MODULES=modules
 L1_DATA=l1-data
 
 run_qemu() {
@@ -55,14 +59,16 @@ run_qemu() {
     qemu_str+="-netdev user,id=net0,host=10.0.2.10,hostfwd=tcp::${ssh_port}-:22,hostfwd=tcp::${nested_ssh_port}-:11032,hostfwd=tcp::${nested_debug_port}-:1234 \\"
 
     qemu_str+="-virtfs local,path=${L1_DATA},mount_tag=${L1_DATA},security_model=passthrough,id=${L1_DATA} \\"
-    
+    qemu_str+="-virtfs local,path=${SCRIPTS},mount_tag=${SCRIPTS},security_model=passthrough,id=${SCRIPTS} \\"
+    qemu_str+="-virtfs local,path=${MODULES},mount_tag=${MODULES},security_model=passthrough,id=${MODULES} \\"
+
     qemu_str+="-append \"${cmdline}\" \\"
     qemu_str+="-kernel ${KERNEL} \\"
     qemu_str+="-initrd ${INITRD} \\"
     qemu_str+=${iommu_str}
     qemu_str+=${edu_str}
     qemu_str+=${debug_str}
-    qemu_str+="-nographic"
+    qemu_str+="-nographic -no-reboot"
 
     eval sudo ${qemu_str}
 }

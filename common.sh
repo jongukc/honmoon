@@ -71,13 +71,13 @@ build_qemu()
         sudo sed -i 's/# deb-src/deb-src/' /etc/apt/sources.list
 
         run_cmd sudo apt update
-        
+
         export DEBIAN_FRONTEND=noninteractive
         run_cmd sudo apt install -y build-essential git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
         run_cmd sudo -E apt build-dep -y qemu
         run_cmd sudo apt install -y libaio-dev libbluetooth-dev libbrlapi-dev libbz2-dev
         run_cmd sudo apt install -y libsasl2-dev libsdl1.2-dev libseccomp-dev libsnappy-dev libssh2-1-dev
-        run_cmd sudo apt install -y python3 python-is-python3 python3-venv 
+        run_cmd sudo apt install -y python3 python-is-python3 python3-venv
 
         mkdir -p qemu-${vm_level}/build
         pushd qemu-${vm_level}/build > /dev/null
@@ -122,7 +122,7 @@ make -j ${MAX_CORES}
         run_umount ${tmp}
     fi
 
-    
+
 }
 
 build_image()
@@ -157,7 +157,7 @@ build_image()
 build_kernel()
 {
     local vm_level=$1
-    
+
     NUM_CORES=$(nproc)
     MAX_CORES=$(($NUM_CORES - 1))
 
@@ -180,7 +180,8 @@ build_kernel()
         }
         run_cmd cp -f /boot/config-$(uname -r) .config
 
-        ./scripts/config --enable CONFIG_EXPERT
+        run_cmd ./scripts/config --enable CONFIG_EXPERT
+        run_cmd ./scripts/config --enable CONFIG_VTRP_HOST
     else
         run_cmd make defconfig
         run_cmd make kvm_guest.config
@@ -199,12 +200,14 @@ build_kernel()
     	run_cmd ./scripts/config --enable CONFIG_VFIO_GROUP
     	run_cmd ./scripts/config --enable CONFIG_VFIO_CONTAINER
     	run_cmd ./scripts/config --enable CONFIG_VFIO_IOMMU_TYPE1
-	    run_cmd ./scripts/config --enable CONFIG_VFIO_VIRQFD 
+	    run_cmd ./scripts/config --enable CONFIG_VFIO_VIRQFD
 
 	    run_cmd ./scripts/config --enable CONFIG_VFIO_PCI_CORE
     	run_cmd ./scripts/config --enable CONFIG_VFIO_PCI_MMAP
     	run_cmd ./scripts/config --enable CONFIG_VFIO_PCI_INTX
     	run_cmd ./scripts/config --enable CONFIG_VFIO_PCI
+
+        run_cmd ./scripts/config --enable CONFIG_VTRP_GUEST
     fi
     popd > /dev/null
     run_cmd $MAKE olddefconfig
@@ -344,7 +347,7 @@ apt install -y initramfs-tools
 
 set +ex
 PATH=/usr/sbin/:\$PATH update-initramfs -k ${version} -c -b /boot/
-""" 
+"""
 
     run_cmd sudo cp ${tmp}/boot/initrd.img-${version} linux-${vm_level}/initrd.img-${vm_level}
 
@@ -422,7 +425,7 @@ finalize_vms()
     run_cmd sudo mkdir -p ${tmp}/root/images
 
     fstab=""
-    for dir in ""l1-data""
+    for dir in "l1-data" "scripts" "modules"
     do
         fstab+="${dir} /root/${dir} 9p trans=virtio,version=9p2000.L 0 0\n"
     done
@@ -449,7 +452,7 @@ usage()
 
 # Default settings
 distribution_version="bookworm"
-qemu_version="10.1.0"
+qemu_version="10.1.2"
 image_size="16384"
 vm_level="l1"
 
