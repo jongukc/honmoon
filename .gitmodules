@@ -1,8 +1,12 @@
 [submodule "linux-l0"]
 	path = linux-l0
-	url = git@github.com:jongukc/vtrp-linux
-	branch = host
+	url = git@github.com:jongukc/linux
+	branch = honmoon-host
 [submodule "linux-l1"]
 	path = linux-l1
-	url = git@github.com:jongukc/vtrp-linux
-	branch = guest
+	url = git@github.com:jongukc/linux
+	branch = honmoon-guest
+[submodule "qemu-l0"]
+	path = qemu-l0
+	url = git@github.com:jongukc/qemu
+	branch = honmoon
