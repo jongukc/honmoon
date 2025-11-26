@@ -54,74 +54,37 @@ build_qemu()
 {
     local vm_level=$1
     local distribution=$2
-    local version=$3
 
     NUM_CORES=$(nproc)
     MAX_CORES=$(($NUM_CORES - 1))
 
-    [ -d "qemu-${vm_level}" ]  || {
-        run_cmd wget https://download.qemu.org/qemu-${version}.tar.xz
-        run_cmd tar xvJf qemu-${version}.tar.xz
-        run_cmd mv qemu-${version} qemu-${vm_level}
-        run_cmd rm qemu-${version}.tar.xz
+    [ ! -d "qemu-${vm_level}" ]  && {
+        echo "Error : linux-${vm_level} not fetched"
+        exit 1
     }
 
-    if [ ${vm_level} = "l0" ];
+    if [ ! ${vm_level} = "l0" ] && [ ! ${vm_level} = "l1" ];
     then
-        sudo sed -i 's/# deb-src/deb-src/' /etc/apt/sources.list
-
-        run_cmd sudo apt update
-
-        export DEBIAN_FRONTEND=noninteractive
-        run_cmd sudo apt install -y build-essential git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
-        run_cmd sudo -E apt build-dep -y qemu
-        run_cmd sudo apt install -y libaio-dev libbluetooth-dev libbrlapi-dev libbz2-dev
-        run_cmd sudo apt install -y libsasl2-dev libsdl1.2-dev libseccomp-dev libsnappy-dev libssh2-1-dev
-        run_cmd sudo apt install -y python3 python-is-python3 python3-venv
-
-        mkdir -p qemu-${vm_level}/build
-        pushd qemu-${vm_level}/build > /dev/null
-        run_cmd ../configure --target-list=x86_64-softmmu --enable-slirp --disable-werror
-        make -j$MAX_CORES
-        popd > /dev/null
-    else # l1
-        [ -f images/${vm_level}.img ] || {
-            echo "Error: ${vm_level}.img not existing"
-            exit 1
-        }
-
-        tmp=$(realpath tmp)
-        run_mount ${tmp} ${vm_level}
-
-        run_cmd sudo mkdir ${tmp}/root/qemu-${vm_level}
-        run_cmd sudo mkdir ${tmp}/root/build-qemu-${vm_level}
-
-        run_cmd sudo mount --bind qemu-${vm_level} ${tmp}/root/qemu-${vm_level}
-
-        run_chroot ${tmp} """
-echo 'nameserver 8.8.8.8' > /etc/resolv.conf
-echo 'deb-src https://deb.debian.org/debian ${distribution} main non-free-firmware' >> /etc/apt/sources.list
-
-apt update
-
-export DEBIAN_FRONTEND=noninteractive
-
-apt install -y build-essential git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
-apt build-dep -y qemu
-apt install -y libaio-dev libbluetooth-dev libbrlapi-dev libbz2-dev
-apt install -y libsasl2-dev libsdl1.2-dev libseccomp-dev libsnappy-dev libssh2-1-dev
-apt install -y python3 python-is-python3 python3-venv
-
-cd /root/build-qemu-${vm_level}
-../qemu-${vm_level}/configure --target-list=x86_64-softmmu --enable-kvm --enable-slirp --disable-werror
-make -j ${MAX_CORES}
-"""
-
-        run_cmd sudo umount ${tmp}/root/qemu-${vm_level}
-        run_cmd sudo rm -rf ${tmp}/root/qemu-${vm_level}
-        run_umount ${tmp}
+        echo "Error: invalid vm_level ${vm_level}"
+        exit 1
     fi
 
+    sudo sed -i 's/# deb-src/deb-src/' /etc/apt/sources.list
+
+    run_cmd sudo apt update
+
+    export DEBIAN_FRONTEND=noninteractive
+    run_cmd sudo apt install -y build-essential git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
+    run_cmd sudo -E apt build-dep -y qemu
+    run_cmd sudo apt install -y libaio-dev libbluetooth-dev libbrlapi-dev libbz2-dev
+    run_cmd sudo apt install -y libsasl2-dev libsdl1.2-dev libseccomp-dev libsnappy-dev libssh2-1-dev
+    run_cmd sudo apt install -y python3 python-is-python3 python3-venv
+
+    mkdir -p qemu-${vm_level}/build
+    pushd qemu-${vm_level}/build > /dev/null
+    run_cmd ../configure --target-list=x86_64-softmmu --enable-slirp --disable-werror
+    make -j$MAX_CORES
+    popd > /dev/null
 
 }
 
@@ -164,7 +127,7 @@ build_kernel()
     run_cmd sudo apt install -y git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison
 
     [ ! -d linux-${vm_level} ] && {
-        echo "Error : linux-${vm_level} not found"
+        echo "Error : linux-${vm_level} not fetched"
         exit 1
     }
 
@@ -181,7 +144,12 @@ build_kernel()
         run_cmd cp -f /boot/config-$(uname -r) .config
 
         run_cmd ./scripts/config --enable CONFIG_EXPERT
-        run_cmd ./scripts/config --enable CONFIG_VTRP_HOST
+        run_cmd ./scripts/config --enable CONFIG_HONMOON_HOST
+
+        # For debugging
+        run_cmd ./scripts/config --enable CONFIG_DEBUG_INFO
+        run_cmd ./scripts/config --enable CONFIG_DEBUG_INFO_DWARF5
+        run_cmd ./scripts/config --disable CONFIG_RANDOMIZE_BASE
     else
         run_cmd make defconfig
         run_cmd make kvm_guest.config
@@ -207,7 +175,7 @@ build_kernel()
     	run_cmd ./scripts/config --enable CONFIG_VFIO_PCI_INTX
     	run_cmd ./scripts/config --enable CONFIG_VFIO_PCI
 
-        run_cmd ./scripts/config --enable CONFIG_VTRP_GUEST
+        run_cmd ./scripts/config --enable CONFIG_HONMOON_GUEST
     fi
     popd > /dev/null
     run_cmd $MAKE olddefconfig
@@ -425,7 +393,7 @@ finalize_vms()
     run_cmd sudo mkdir -p ${tmp}/root/images
 
     fstab=""
-    for dir in "l1-data" "scripts" "modules"
+    for dir in "l1-data" "scripts"
     do
         fstab+="${dir} /root/${dir} 9p trans=virtio,version=9p2000.L 0 0\n"
     done
@@ -452,7 +420,6 @@ usage()
 
 # Default settings
 distribution_version="bookworm"
-qemu_version="10.1.2"
 image_size="16384"
 vm_level="l1"
 
@@ -493,7 +460,7 @@ shift $((OPTIND -1))
 
 case $target in
     "qemu")
-        build_qemu ${vm_level} ${distribution_version} ${qemu_version}
+        build_qemu ${vm_level} ${distribution_version}
         ;;
     "image")
         build_image ${vm_level} ${distribution_version} ${image_size}

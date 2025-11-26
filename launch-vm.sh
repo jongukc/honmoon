@@ -9,7 +9,6 @@ KERNEL=linux-l1/arch/x86/boot/bzImage
 INITRD=linux-l1/initrd.img-l1
 
 SCRIPTS=scripts
-MODULES=modules
 L1_DATA=l1-data
 
 run_qemu() {
@@ -17,13 +16,14 @@ run_qemu() {
     local smp=$2
     local ssh_port=$3
     local debug_port=$4
+    local enable_honmoon=$5
 
     qemu_str=""
 
     nested_ssh_port=$((ssh_port + 1))
     nested_debug_port=$((debug_port + 1))
 
-    cmdline="console=ttyS0 root=/dev/sda rw earlyprintk=serial net.ifnames=0 pci=earlydump debug"
+    cmdline="console=ttyS0 root=/dev/sda rw earlyprintk=serial net.ifnames=0 pci=earlydump debug honmoon=${enable_honmoon} "
 
     debug_str=""
     if [[ ! -z $DEBUG ]];
@@ -50,7 +50,7 @@ run_qemu() {
         edu_str=" -device edu \\"
     fi
 
-    qemu_str+="${QEMU} -cpu host -machine q35,kernel_irqchip=split -enable-kvm \\"
+    qemu_str+="${QEMU} -cpu host,-la57 -machine q35,kernel_irqchip=split -enable-kvm \\"
     qemu_str+="-m ${mem} -smp ${smp} \\"
 
     qemu_str+="-drive format=raw,file=${IMG} \\"
@@ -60,7 +60,6 @@ run_qemu() {
 
     qemu_str+="-virtfs local,path=${L1_DATA},mount_tag=${L1_DATA},security_model=passthrough,id=${L1_DATA} \\"
     qemu_str+="-virtfs local,path=${SCRIPTS},mount_tag=${SCRIPTS},security_model=passthrough,id=${SCRIPTS} \\"
-    qemu_str+="-virtfs local,path=${MODULES},mount_tag=${MODULES},security_model=passthrough,id=${MODULES} \\"
 
     qemu_str+="-append \"${cmdline}\" \\"
     qemu_str+="-kernel ${KERNEL} \\"
@@ -91,10 +90,11 @@ usage() {
 
 mem=16g
 smp=4
+enable_honmoon=0
 ssh_port=$L1_SSH_PORT
 gdb_port=$L1_GDB_PORT
 
-while getopts ":hm:s:p:d:" opt; do
+while getopts ":hm:s:p:d:e" opt; do
     case $opt in
         h)
             usage
@@ -115,6 +115,9 @@ while getopts ":hm:s:p:d:" opt; do
             gdb_port=$OPTARG
             echo "GDB Port: ${gdb_port}"
             ;;
+        e)
+            enable_honmoon=1
+            ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
             usage
@@ -124,4 +127,4 @@ done
 
 shift $((OPTIND -1))
 
-run_qemu ${mem} ${smp} ${ssh_port} ${gdb_port}
+run_qemu ${mem} ${smp} ${ssh_port} ${gdb_port} ${enable_honmoon}
