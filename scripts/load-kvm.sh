@@ -6,4 +6,4 @@ lsmod | grep kvm >/dev/null && {
 }
 
 sudo modprobe kvm
-sudo modprobe kvm_intel hlat=0 pw=1 gpv=1
+sudo modprobe kvm_intel hlat=1 pw=1 gpv=1 honmoon=1
