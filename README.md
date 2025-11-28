@@ -25,14 +25,8 @@ QEMU, run the setup script:
 **Warning:** The `setup.sh` script builds and installs a new host kernel.
 Please proceed with caution on production machines.
 
-## Scripts Overview
+After the setup is done, execute `launch-vm.sh` to run the VM.
 
-*   **`setup.sh`**: The main entry point for setting up the environment. It
-    initializes submodules, builds QEMU, creates disk images, compiles both L0
-    (Host) and L1 (Guest) Linux kernels, and prepares the initrd.
-*   **`common.sh`**: A helper script containing the core logic for building
-    components (QEMU, Linux, images) and managing the build environment. It is
-    used by `setup.sh`.
-*   **`launch-vm.sh`**: Launches the L1 Guest VM using the custom-built QEMU and
-    Kernel. It configures SSH forwarding and GDB debugging ports for
-    development.
+## TODO
+
+- GPV (Guest Paging Verification) feature is misimplemented in the host, failing to detect page aliasing attacks.
