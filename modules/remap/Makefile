@@ -1,0 +1,6 @@
+obj-m += remap.o
+
+.PHONY: clean
+
+clean:
+	$(RM) *.o *.cmd *.symvers *.mod *.mod.c *.order *.ko

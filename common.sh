@@ -393,7 +393,7 @@ finalize_vms()
     run_cmd sudo mkdir -p ${tmp}/root/images
 
     fstab=""
-    for dir in "l1-data" "scripts"
+    for dir in "l1-data" "scripts" "modules"
     do
         fstab+="${dir} /root/${dir} 9p trans=virtio,version=9p2000.L 0 0\n"
     done
